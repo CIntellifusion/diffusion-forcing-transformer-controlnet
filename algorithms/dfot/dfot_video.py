@@ -115,6 +115,7 @@ class DFoTVideo(BasePytorchAlgo):
             ),
             disable=not self.cfg.compile,
         )
+        # import pdb; pdb.set_trace()
         self.register_data_mean_std(self.cfg.data_mean, self.cfg.data_std)
 
         # 2. VAE model
@@ -468,7 +469,7 @@ class DFoTVideo(BasePytorchAlgo):
                 else self._interpolate_videos
             )
             all_videos[task] = sample_fn(xs, conditions=conditions)
-
+        # import pdb; pdb.set_trace()
         # remove None values
         all_videos = {k: v for k, v in all_videos.items() if v is not None}
         # rearrange/unnormalize/detach the videos
@@ -662,6 +663,7 @@ class DFoTVideo(BasePytorchAlgo):
             desc="Interpolating with DFoT",
             leave=False,
         )
+        # import pdb; pdb.set_trace()
         for current_plan in plan:
             # Collect the batched input for the current plan
             current_context = []
@@ -709,7 +711,6 @@ class DFoTVideo(BasePytorchAlgo):
                     pbar=pbar,
                 )
                 xs_pred.append(xs_pred_chunk)
-
             xs_pred = torch.cat(xs_pred, 0)
             # Update with the interpolated frames
             for frames, pred in zip(current_plan, xs_pred.chunk(len(current_plan), 0)):
@@ -1173,6 +1174,7 @@ class DFoTVideo(BasePytorchAlgo):
 
         horizon = length if self.use_causal_mask else self.max_tokens
         padding = horizon - length
+        # import pdb; pdb.set_trace()
         # create initial xs_pred with noise
         xs_pred = torch.randn(
             (batch_size, horizon, *x_shape),
@@ -1419,8 +1421,16 @@ class DFoTVideo(BasePytorchAlgo):
 
     def _should_include_in_checkpoint(self, key: str) -> bool:
         return key.startswith("diffusion_model.model") or key.startswith(
-            "diffusion_model._orig_mod.model"
-        )
+            "diffusion_model._orig_mod.model" 
+        ) or key.startswith(
+            "diffusion_model._orig_mod.base_model"
+        ) or key.startswith(
+            "diffusion_model.base_model"
+        ) or key.startswith(
+                "diffusion_model._orig_mod.controlnet"
+        ) or key.startswith("diffusion_model.controlnet")
+        
+            
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         # 1. (Optionally) uncompile the model's state_dict before saving
@@ -1444,7 +1454,28 @@ class DFoTVideo(BasePytorchAlgo):
         # 4. Rewrite the state_dict of the checkpoint, only leaving meaningful keys
         # defined by self._should_include_in_checkpoint
         # also print out warnings when the checkpoint does not exactly match the expected format
-
+        ## add for controlnet 
+        # remap key 
+        ckpt_with_controlnet_weights = False
+        if self.cfg.compile:
+            # model is compiled 
+            base_str = "diffusion_model._orig_mod.model"
+        else:
+            base_str = "diffusion_model.model" 
+        
+        target_str = base_str+ ".base_model"
+        if "controlnet" in self.cfg.backbone.name:
+            for key in list(checkpoint["state_dict"].keys()):
+                if  base_str in key:
+                    # import pdb; pdb.set_trace()
+                    new_key = key.replace(base_str, target_str)
+                    checkpoint["state_dict"][new_key] = checkpoint["state_dict"][key]
+                    # print(f"key {key} is remapped to {new_key}")
+                    del checkpoint["state_dict"][key]
+                if "controlnet" in key:
+                    ckpt_with_controlnet_weights = True
+        # print("ckpt_with_controlnet_weights", ckpt_with_controlnet_weights)
+        # import pdb; pdb.set_trace()
         new_state_dict = {}
         for key, value in self.state_dict().items():
             if (
@@ -1467,12 +1498,14 @@ class DFoTVideo(BasePytorchAlgo):
                 ignored_keys,
             )
         # print keys that are not found in the checkpoint
+        # import pdb; pdb.set_trace()
         missing_keys = [
             key
             for key in self.state_dict().keys()
             if self._should_include_in_checkpoint(key)
             and key not in checkpoint["state_dict"]
         ]
+        
         if missing_keys:
             rank_zero_print(
                 cyan("The following keys are not found in the checkpoint:"),

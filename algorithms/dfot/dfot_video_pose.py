@@ -19,14 +19,15 @@ class DFoTVideoPose(DFoTVideo):
         self._check_cfg(cfg)
         self._update_backbone_cfg(cfg)
         super().__init__(cfg)
-
+        import pdb; pdb.set_trace()
+        #
     def _check_cfg(self, cfg: DictConfig):
         """
         Check if the config is valid
         """
-        if cfg.backbone.name not in {"dit3d_pose", "u_vit3d_pose"}:
+        if cfg.backbone.name not in {"dit3d_pose", "u_vit3d_pose","u_vit3d_pose_controlnet"}:
             raise ValueError(
-                f"DiffusionForcingVideo3D only supports backbone 'dit3d_pose' or 'u_vit3d_pose', got {cfg.backbone.name}"
+                f"DiffusionForcingVideo3D only supports backbone 'dit3d_pose' or 'u_vit3d_pose_controlnet' 'dit3d_pose_controlnet', got {cfg.backbone.name}"
             )
 
         if (
@@ -37,11 +38,11 @@ class DFoTVideoPose(DFoTVideo):
             raise ValueError(
                 f"When using global camera pose conditioning, `algorithm.backbone.conditioning.modeling` should be 'film', got {cfg.backbone.conditioning.modeling}"
             )
-
-        if cfg.backbone.name == "u_vit3d_pose" and self.conditioning_type == "global":
+        if (cfg.backbone.name in ["u_vit3d_pose","u_vit3d_pose_controlnet"]) and self.conditioning_type == "global":
             raise ValueError(
                 "Global camera pose conditioning is not supported for U-ViT3DPose"
             )
+        ## adding additional control to diffusion backbone 
 
     def _update_backbone_cfg(self, cfg: DictConfig):
         """
