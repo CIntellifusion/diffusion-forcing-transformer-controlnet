@@ -121,7 +121,7 @@ class UViT3DPose(UViT3D):
         # Middle blocks
         x = self._run_level(x, embs[-1], self.num_levels - 1)
         
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         # Up-sampling blocks
         for _i_level, up_block in enumerate(self.up_blocks):
             i_level = self.num_levels - 2 - _i_level
@@ -129,7 +129,7 @@ class UViT3DPose(UViT3D):
             x = up_block[0](x) + hs_before.pop()
             x = self._run_level(x, embs[i_level], i_level, is_up=True)
             print(f"upsample i_level: {i_level}, x.shape: {x.shape}")
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         x = self.project_output(x)
         return rearrange(x, "(b t) c h w -> b t c h w", t=self.temporal_length)
     
@@ -338,6 +338,9 @@ class ControlNetUViT3DPose(nn.Module):
         for proj in self.control_projections:
             for param in proj.parameters():
                 param.requires_grad = train_control
+        trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad) 
+        frozen_params = sum(p.numel() for p in self.parameters() if not p.requires_grad)
+        print(f"[ControlNetUViT3DPose] Trainable parameters: {trainable_params}, Frozen parameters: {frozen_params}")
     def run_controlnet_level_blocks(
         self, x: Tensor, emb: Tensor, i_level: int, is_up: bool = False
     ) -> Tensor:
@@ -385,11 +388,20 @@ class ControlNetUViT3DPose(nn.Module):
             external_cond is not None
         ), "External condition (camera pose) is required for U-ViT3DPose model."
 
+        # import pdb; pdb.set_trace()
         # Initial reshaping and embedding
         x = rearrange(x, "b t c h w -> (b t) c h w")
         if control_input is None:
+            print("warning: control_input is None, using x as control input")
             control_input = x.clone() 
-        
+        elif control_input_length != self.base_model.temporal_length: 
+            # repeat
+            # import pdb; pdb.set_trace() 
+            control_input_length = control_input.shape[1]
+            assert control_input_length == 1, f"Control input length should be 1, but got {control_input_length}"
+            control_input = control_input.repeat(1, self.base_model.temporal_length, 1, 1, 1)
+            # Combine batch and temporal dimensions
+        control_input = rearrange(control_input, "b t c h w -> (b t) c h w")
         control_input = self.base_model.embed_input(control_input) 
         x = self.base_model.embed_input(x)
         control_input = self.before_proj(control_input) # before proj should have same size with embed input seq length
@@ -417,6 +429,7 @@ class ControlNetUViT3DPose(nn.Module):
         hs_after = []
         control_feats_before = []
         control_feats_after = []
+        # import pdb; pdb.set_trace()
         control_input = x + control_input 
         # Down blocks
         for i_level, (down_block, ctrl_block, proj) in enumerate(

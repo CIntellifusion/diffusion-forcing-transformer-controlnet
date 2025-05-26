@@ -104,7 +104,10 @@ class DFoTVideo(BasePytorchAlgo):
             assert (
                 self.cfg.diffusion.is_continuous
             ), "`torch.compile` is only verified for continuous-time diffusion models. To use it for discrete-time models, it should be tested, including # graph breaks"
-
+        if "controlnet" in self.cfg._name:
+            self.cfg.compile = False
+            print(f"{cyan('torch.compile is not supported for ControlNet models, disabling it')}")
+            
         self.diffusion_model = torch.compile(
             diffusion_cls(
                 cfg=self.cfg.diffusion,
@@ -283,6 +286,8 @@ class DFoTVideo(BasePytorchAlgo):
                 gt_videos = batch["videos"]
         else:
             xs = batch["videos"]
+            gt_videos = batch.get("videos", None) 
+        # import pdb; pdb.set_trace() 
         xs = self._normalize_x(xs)
 
         # 2. Prepare external conditions

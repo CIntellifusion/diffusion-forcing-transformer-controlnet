@@ -140,6 +140,7 @@ class ContinuousDiffusion(DiscreteDiffusion):
         x: torch.Tensor,
         external_cond: Optional[torch.Tensor],
         k: torch.Tensor,
+        **kwargs
     ):
         logsnr = self.training_schedule(k)
         noise = torch.randn_like(x)
@@ -148,8 +149,9 @@ class ContinuousDiffusion(DiscreteDiffusion):
         sigma_t = self.add_shape_channels(torch.sigmoid(-logsnr).sqrt())
         x_t = alpha_t * x + sigma_t * noise
 
-        # v-prediction
-        v_pred = self.model(x_t, self.precond_scale * logsnr, external_cond)
+        # v-prediction 
+        # import pdb; pdb.set_trace() 
+        v_pred = self.model(x_t, self.precond_scale * logsnr, external_cond,**kwargs)
         noise_pred = alpha_t * v_pred + sigma_t * x_t
         x_pred = alpha_t * x_t - sigma_t * v_pred
 

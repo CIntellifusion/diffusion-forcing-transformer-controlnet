@@ -64,6 +64,8 @@ class RealEstate10KBaseVideoDataset(BaseVideoDataset):
                 "Please read the NOTE in the `_download_videos` function at `datasets/video/realestate10k_video_dataset.py` before continuing."
             )
         )
+        print(cyan("Shortcutting this function will not download the dataset!"))
+        return 
         input("Press Enter to continue...")
         download_and_extract_archive(
             self._DATASET_URL,
@@ -71,11 +73,17 @@ class RealEstate10KBaseVideoDataset(BaseVideoDataset):
             filename="raw.tar.gz",
             remove_finished=True,
         )
-        (self.save_dir / "RealEstate10K").rename(self.save_dir / "raw")
-        (self.save_dir / "raw" / "train").rename(self.save_dir / "raw" / "training")
-
+        try:
+            (self.save_dir / "RealEstate10K").rename(self.save_dir / "raw")
+            (self.save_dir / "raw" / "train").rename(self.save_dir / "raw" / "training")
+        except OSError:
+            print(
+                "The dataset is already downloaded. Please remove the existing dataset before downloading again."
+            )
+        
         for split in ["training", "test"]:
             plan = self._build_download_plan(split)
+            # import pdb; pdb.set_trace() 
             self._download_videos(split, plan)
             self._preprocess_videos(split, plan)
 
@@ -94,7 +102,7 @@ class RealEstate10KBaseVideoDataset(BaseVideoDataset):
         - test: 655 / 696 videos = 7148 / 7711 clips
         """
         print(cyan(f"Downloading {split} videos from YouTube..."))
-        download_dir = self.save_dir / "raw" / split
+        download_dir = self.save_dir / "raw" / split #  PosixPath('data/real-estate-10k/raw/training') 
         download_dir.mkdir(parents=True, exist_ok=True)
         download_fn = partial(_download_youtube_video, download_dir=download_dir)
         with Pool(32) as pool:
@@ -384,7 +392,7 @@ def _download_youtube_video(youtube_url: str, download_dir: Path) -> None:
         yt.streams.filter(res="360p").first().download(
             download_dir, filename=f"{_youtube_url_to_id(youtube_url)}.mp4"
         )
-
+    # import pdb; pdb.set_trace()
     try:
         download_with_client(youtube_url)
     except Exception:

@@ -5,7 +5,7 @@ from datasets.video import (
     RealEstate10KMiniAdvancedVideoDataset,
     RealEstate10KOODAdvancedVideoDataset,
 )
-from algorithms.dfot import DFoTVideo, DFoTVideoPose
+from algorithms.dfot import DFoTVideo, DFoTVideoPose,VGGTControlNetDFoTVideoPose
 from .base_exp import BaseLightningExperiment
 from .data_modules.utils import _data_module_cls
 
@@ -20,6 +20,7 @@ class VideoGenerationExperiment(BaseLightningExperiment):
         dfot_video_pose=DFoTVideoPose,
         sd_video=DFoTVideo,
         sd_video_3d=DFoTVideoPose,
+        vggt_controlnet_dfot_video_pose=VGGTControlNetDFoTVideoPose
     )
 
     compatible_datasets = dict(
