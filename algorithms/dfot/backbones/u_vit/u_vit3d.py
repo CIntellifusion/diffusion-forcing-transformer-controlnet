@@ -102,7 +102,7 @@ class UViT3D(BaseBackbone):
                 dim,
                 (self.temporal_length, level_resolution, level_resolution),
             )
-
+        # import pdb; pdb.set_trace() 
         def _rope_kwargs(i_level: int):
             return (
                 {"rope": self.pos_embs[f"{i_level}"]}

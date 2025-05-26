@@ -6,6 +6,10 @@ defaults:
   - override backbone: u_vit3d_pose_controlnet
 
 compile: false 
+checkpoint:
+  reset_optimizer: True
+  strict: False
+
 camera_pose_conditioning:
   normalize_by: first # first, mean
   bound: null # float to scale the camera positions to [-bound, bound]^3

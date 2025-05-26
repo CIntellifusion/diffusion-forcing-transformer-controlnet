@@ -335,7 +335,7 @@ class DFoTVideo(BasePytorchAlgo):
             "xs_pred": xs_pred,
             "xs": xs,
         }
-
+        
         return output_dict
 
     def on_before_optimizer_step(self, optimizer: Optimizer) -> None:
@@ -1023,7 +1023,7 @@ class DFoTVideo(BasePytorchAlgo):
             )
 
         chunk_size = self.chunk_size if self.use_causal_mask else self.max_tokens
-
+        # import pdb; pdb.set_trace()  # uncomment to debug
         curr_token = gt_len
         xs_pred = context
         x_shape = self.x_shape
@@ -1242,7 +1242,7 @@ class DFoTVideo(BasePytorchAlgo):
                 desc="Sampling with DFoT",
                 leave=False,
             )
-
+        # import pdb; pdb.set_trace()
         for m in range(scheduling_matrix.shape[0] - 1):
             from_noise_levels = scheduling_matrix[m]
             to_noise_levels = scheduling_matrix[m + 1]

@@ -6,7 +6,7 @@ defaults:
 
 save_dir: data/real-estate-10k-mini
 external_cond_dim: 16
-max_frames: 8
+max_frames: 16 # updated by haoyu for longer video
 frame_skip: 10
 context_length: 4
 resolution: 256

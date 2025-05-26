@@ -65,6 +65,7 @@ class UViT3DPose(UViT3D):
         noise_levels: Tensor,
         external_cond: Optional[Tensor] = None,
         external_cond_mask: Optional[Tensor] = None,
+        control_input: Optional[Tensor] = None
     ) -> Tensor:
         """
         Forward pass of the U-ViT backbone, with pose conditioning.
@@ -75,6 +76,7 @@ class UViT3DPose(UViT3D):
         Returns:
             Output tensor of shape (B, T, C, H, W).
         """
+        assert control_input is None, "Control input is not supported in U-ViT3DPose model. Just for dummy interface compatibility."
         # import pdb; pdb.set_trace()
         assert (
             x.shape[1] == self.temporal_length
@@ -107,13 +109,13 @@ class UViT3DPose(UViT3D):
         ]
         hs_before = []  # hidden states before downsampling
         hs_after = []  # hidden states after downsampling
-        print(f"original shape x: {x.shape}")
+        # print(f"original shape x: {x.shape}") #  x: torch.Size([64, 128, 128, 128])
         # Down-sampling blocks
         for i_level, down_block in enumerate(
             self.down_blocks,
         ):
             x = self._run_level(x, embs[i_level], i_level)
-            print(f"down sample i_level: {i_level}, x.shape: {x.shape}")
+            # print(f"down sample i_level: {i_level}, x.shape: {x.shape}")
             hs_before.append(x)
             x = down_block[-1](x)
             hs_after.append(x)
@@ -128,7 +130,13 @@ class UViT3DPose(UViT3D):
             x = x - hs_after.pop()
             x = up_block[0](x) + hs_before.pop()
             x = self._run_level(x, embs[i_level], i_level, is_up=True)
-            print(f"upsample i_level: {i_level}, x.shape: {x.shape}")
+            # print(f"upsample i_level: {i_level}, x.shape: {x.shape}")
+        #down sample i_level: 0, x.shape: torch.Size([64, 128, 128, 128])
+        # down sample i_level: 1, x.shape: torch.Size([64, 256, 64, 64])
+        # down sample i_level: 2, x.shape: torch.Size([64, 576, 32, 32])
+        #upsample i_level: 2, x.shape: torch.Size([64, 576, 32, 32])
+        # upsample i_level: 1, x.shape: torch.Size([64, 256, 64, 64])
+        # upsample i_level: 0, x.shape: torch.Size([64, 128, 128, 128])
         # import pdb; pdb.set_trace()
         x = self.project_output(x)
         return rearrange(x, "(b t) c h w -> b t c h w", t=self.temporal_length)
@@ -392,13 +400,18 @@ class ControlNetUViT3DPose(nn.Module):
         # Initial reshaping and embedding
         x = rearrange(x, "b t c h w -> (b t) c h w")
         if control_input is None:
-            print("warning: control_input is None, using x as control input")
+            print("[Warning][ControlNetUViT3DPose]: control_input is None, using x as control input")
             control_input = x.clone() 
-        elif control_input_length != self.base_model.temporal_length: 
+        elif control_input.shape[1]  != self.base_model.temporal_length: 
             # repeat
             # import pdb; pdb.set_trace() 
             control_input_length = control_input.shape[1]
-            assert control_input_length == 1, f"Control input length should be 1, but got {control_input_length}"
+            if control_input_length != 1:
+                print(f"[Warning][ControlNetUViT3DPose] Control input length is {control_input_length}, means multiple vggt referecing frames, reducing to 1 by mean pooling")
+                control_input = torch.mean(control_input, dim=1, keepdim=True)  # mean pooling
+                control_input_length = control_input.shape[1]
+            
+            assert control_input_length == 1, f"[Error][ControlNetUViT3DPose]Control input length should be 1, but got {control_input_length}"
             control_input = control_input.repeat(1, self.base_model.temporal_length, 1, 1, 1)
             # Combine batch and temporal dimensions
         control_input = rearrange(control_input, "b t c h w -> (b t) c h w")

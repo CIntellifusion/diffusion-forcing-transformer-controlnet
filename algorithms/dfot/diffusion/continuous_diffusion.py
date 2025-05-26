@@ -113,9 +113,9 @@ class ContinuousDiffusion(DiscreteDiffusion):
             self.cfg.training_schedule
         )
 
-    def model_predictions(self, x, k, external_cond=None, external_cond_mask=None):
+    def model_predictions(self, x, k, external_cond=None, external_cond_mask=None,**kwargs):
         model_output = self.model(
-            x, self.precond_scale * self.logsnr[k], external_cond, external_cond_mask
+            x, self.precond_scale * self.logsnr[k], external_cond, external_cond_mask,**kwargs
         )
 
         if self.objective == "pred_noise":

@@ -237,9 +237,11 @@ class DiscreteDiffusion(nn.Module):
             + extract(self.sqrt_one_minus_alphas_cumprod, k, x_start.shape) * noise
         )
 
-    def p_mean_variance(self, x, k, external_cond=None, external_cond_mask=None):
+    def p_mean_variance(self, x, k, external_cond=None, external_cond_mask=None,control_input=None):
         model_pred = self.model_predictions(
-            x=x, k=k, external_cond=external_cond, external_cond_mask=external_cond_mask
+            x=x, k=k, external_cond=external_cond,
+            external_cond_mask=external_cond_mask,
+            control_input=control_input
         )
         x_start = model_pred.pred_x_start
         return self.q_posterior(x_start=x_start, x_k=x, k=k)
@@ -369,6 +371,7 @@ class DiscreteDiffusion(nn.Module):
         external_cond: Optional[torch.Tensor],
         external_cond_mask: Optional[torch.Tensor] = None,
         guidance_fn: Optional[Callable] = None,
+        control_input: Optional[torch.Tensor] = None,
     ):
         if self.is_ddim_sampling:
             return self.ddim_sample_step(
@@ -378,6 +381,7 @@ class DiscreteDiffusion(nn.Module):
                 external_cond=external_cond,
                 external_cond_mask=external_cond_mask,
                 guidance_fn=guidance_fn,
+                control_input=control_input,
             )
 
         # FIXME: temporary code for checking ddpm sampling
@@ -396,6 +400,7 @@ class DiscreteDiffusion(nn.Module):
             external_cond=external_cond,
             external_cond_mask=external_cond_mask,
             guidance_fn=guidance_fn,
+            control_input=control_input,
         )
 
     def ddpm_sample_step(
@@ -405,6 +410,7 @@ class DiscreteDiffusion(nn.Module):
         external_cond: Optional[torch.Tensor],
         external_cond_mask: Optional[torch.Tensor] = None,
         guidance_fn: Optional[Callable] = None,
+        control_input: Optional[torch.Tensor] = None,
     ):
         if guidance_fn is not None:
             raise NotImplementedError("guidance_fn is not yet implmented for ddpm.")
@@ -437,6 +443,7 @@ class DiscreteDiffusion(nn.Module):
         external_cond: Optional[torch.Tensor],
         external_cond_mask: Optional[torch.Tensor] = None,
         guidance_fn: Optional[Callable] = None,
+        control_input: Optional[torch.Tensor] = None,
     ):
 
         clipped_curr_noise_level = torch.clamp(curr_noise_level, min=0)
@@ -469,6 +476,7 @@ class DiscreteDiffusion(nn.Module):
                     k=clipped_curr_noise_level,
                     external_cond=external_cond,
                     external_cond_mask=external_cond_mask,
+                    control_input=control_input,
                 )
 
                 guidance_loss = guidance_fn(
@@ -496,6 +504,7 @@ class DiscreteDiffusion(nn.Module):
                 k=clipped_curr_noise_level,
                 external_cond=external_cond,
                 external_cond_mask=external_cond_mask,
+                control_input=control_input,
             )
             x_start = model_pred.pred_x_start
             pred_noise = model_pred.pred_noise
