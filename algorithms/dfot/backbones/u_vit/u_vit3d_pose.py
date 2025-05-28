@@ -407,10 +407,11 @@ class ControlNetUViT3DPose(nn.Module):
             # import pdb; pdb.set_trace() 
             control_input_length = control_input.shape[1]
             if control_input_length != 1:
-                print(f"[Warning][ControlNetUViT3DPose] Control input length is {control_input_length}, means multiple vggt referecing frames, reducing to 1 by mean pooling")
-                control_input = torch.mean(control_input, dim=1, keepdim=True)  # mean pooling
+                # print(f"[Warning][ControlNetUViT3DPose] Control input length is {control_input_length}, means multiple vggt referecing frames, reducing to 1 by mean pooling")
+                # control_input = torch.mean(control_input, dim=1, keepdim=True)  # mean pooling
+                print(f"[Warning][ControlNetUViT3DPose] Control input length is {control_input_length}, means multiple vggt referecing frames, reducing to 1 by taking the first frame")
+                control_input = control_input[:,:1,...] # first frame 
                 control_input_length = control_input.shape[1]
-            
             assert control_input_length == 1, f"[Error][ControlNetUViT3DPose]Control input length should be 1, but got {control_input_length}"
             control_input = control_input.repeat(1, self.base_model.temporal_length, 1, 1, 1)
             # Combine batch and temporal dimensions

@@ -143,7 +143,7 @@ def clean_cache(dir):
 
 if __name__ == "__main__":
     chunk_size = 100 
-    train_data_max_id = 5500  # 假设最大ID为1000
+    train_data_max_id = 0  # 假设最大ID为1000
     
     for start_idx in range(0, train_data_max_id + 1, chunk_size):
         copy_data_chunk_from_blob(
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     test_data_max_id = 550 
     for start_idx in range(0, test_data_max_id + 1, chunk_size):
         copy_data_chunk_from_blob(
-            "https://msramldl.blob.core.windows.net/ml-dl/v-diankunwu/datasets/re10k/extracted/re10k/train/",
+            "https://msramldl.blob.core.windows.net/ml-dl/v-diankunwu/datasets/re10k/extracted/re10k/test/",
             "torch_test_inputs",
             lambda idx: f"{idx:06d}.torch",
             start_idx=start_idx,

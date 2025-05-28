@@ -2,11 +2,12 @@ import os
 import torch
 import imageio
 import numpy as np
+import multiprocessing
 from PIL import Image
 from tqdm import tqdm
 from io import BytesIO
-from torch import Tensor
-
+import imageio.v3 as iio  # 更快、更推荐的 imageio API（也可用 imageio）
+from typing import List
 
 def rescale_and_crop(video: np.ndarray, resolution: int) -> np.ndarray:
     """
@@ -29,39 +30,37 @@ def rescale_and_crop(video: np.ndarray, resolution: int) -> np.ndarray:
 
     return np.stack([process_frame(frame) for frame in video])
 
-
 class ImageProcessor:
-    def convert_images(self, images: list[Tensor]) -> Tensor:
+    def convert_images(self, images: List[np.ndarray]) -> np.ndarray:
         """
-        Convert a list of uint8 tensors to [B, 3, H, W] tensor.
-        Each input tensor is treated as raw image bytes.
+        Convert a list of image bytes (as numpy arrays) into a single numpy array [B, H, W, 3].
+        Each item is treated as raw bytes representing an RGB image.
         """
-        tensor_list = []
+        np_images = []
         for image in images:
             img = Image.open(BytesIO(image.numpy().tobytes())).convert("RGB")
-            tensor = torch.ByteTensor(torch.ByteStorage.from_buffer(img.tobytes()))
-            tensor = tensor.view(img.size[1], img.size[0], 3).permute(2, 0, 1)
-            tensor_list.append(tensor)
-        return torch.stack(tensor_list)
+            np_images.append(np.array(img, dtype=np.uint8))  # [H, W, 3]
+        return np.stack(np_images, axis=0)  # [B, H, W, 3]
 
-    def save_images(self, tensor_batch: Tensor, output_dir: str, prefix: str = "image", ext: str = "png"):
+    def save_images(self, batch: np.ndarray, output_dir: str, prefix: str = "image", ext: str = "png"):
+        """
+        Save a batch of numpy images to disk. Shape: [B, H, W, 3]
+        """
         os.makedirs(output_dir, exist_ok=True)
-        for i, img_tensor in enumerate(tensor_batch):
-            img = img_tensor.permute(1, 2, 0).cpu().numpy()
+        for i, img in enumerate(batch):
             Image.fromarray(img).save(os.path.join(output_dir, f"{prefix}_{i:03d}.{ext}"))
-        print(f"✅ Saved {len(tensor_batch)} images to {output_dir}")
+        print(f"✅ Saved {len(batch)} images to {output_dir}")
 
-    def save_video(self, tensor_batch: Tensor, output_path: str, fps: int = 8):
+    def save_video(self, batch: np.ndarray, output_path: str, fps: int = 8):
+        """
+        Save a video from a batch of images. Shape: [B, H, W, 3]
+        """
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        frames = tensor_batch.permute(0, 2, 3, 1).cpu().numpy()
-        frames = rescale_and_crop(frames, resolution=256)
-        with imageio.get_writer(output_path, fps=fps, codec='libx264') as writer:
-            for frame in frames:
-                writer.append_data(frame)
+        batch = rescale_and_crop(batch, resolution=256)
+        iio.imwrite(output_path, batch, fps=fps, codec='libx264')  # iio 自动处理帧格式
         print(f"🎞️ Saved video to {output_path}")
 
 
-import multiprocessing
 
 
 def process_single_file(args):
