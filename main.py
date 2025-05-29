@@ -131,9 +131,7 @@ def run_local(cfg: DictConfig):
         checkpoint_path = wandb_to_local_path(run_path)
     elif load and is_hf_path(load):
         checkpoint_path = download_pretrained(load)
-    print("Checkpoint path:", checkpoint_path)
-    import pdb; pdb.set_trace() 
-    from pprint import pprint 
+    print("Checkpoint path:", cyan(checkpoint_path))
     print(OmegaConf.to_yaml(cfg)) 
     # launch experiment
     experiment = build_experiment(cfg, logger, checkpoint_path)

@@ -522,7 +522,7 @@ class DFoTVideo(BasePytorchAlgo):
         key_conditions = (
             conditions[:, keyframe_indices] if conditions is not None else None
         )
-
+        # import pdb; pdb.set_trace() 
         # 1. Predict the keyframes
         xs_pred_key, *_ = self._predict_sequence(
             xs_pred[:, : self.n_context_tokens],
@@ -1067,7 +1067,7 @@ class DFoTVideo(BasePytorchAlgo):
             cond_slice = None
             if conditions is not None:
                 cond_slice = conditions[:, curr_token - c : curr_token - c + cond_len]
-
+            # import pdb; pdb.set_trace() 
             new_pred, record = self._sample_sequence(
                 batch_size,
                 length=l,
@@ -1526,6 +1526,7 @@ class DFoTVideo(BasePytorchAlgo):
                         "Strict checkpoint loading is turned off, so using the initialized value for the missing keys."
                     )
                 )
+        # import pdb; pdb.set_trace()
         checkpoint["state_dict"] = new_state_dict
 
     def _load_ema_weights_to_state_dict(self, checkpoint: Dict[str, Any]) -> None:

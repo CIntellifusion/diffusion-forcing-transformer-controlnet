@@ -7,7 +7,7 @@ defaults:
 
 compile: false 
 checkpoint:
-  reset_optimizer: True
+  reset_optimizer: True # must true since trainable is different from pretrain 
   strict: False
 
 camera_pose_conditioning:
