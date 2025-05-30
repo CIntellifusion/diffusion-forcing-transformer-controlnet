@@ -122,9 +122,11 @@ class VGGTControlNetDFoTVideoPose(DFoTVideoPose):
     """
 
     def __init__(self, cfg: DictConfig):
+        
         super().__init__(cfg)
         self.build_connector()
-
+        base_model_ckpt = cfg.base_model_ckpt 
+        self.init_base_model(base_model_ckpt)
     def build_connector(self):
         """
         Build the connector for the model
@@ -134,17 +136,51 @@ class VGGTControlNetDFoTVideoPose(DFoTVideoPose):
             num_layers=self.cfg.backbone.connector.num_layers,
         )
         # output = connector(images) 
+    def init_base_model(self,ckpt_path):
+        checkpoint = torch.load(ckpt_path, map_location='cpu',weights_only=False)
+        if "state_dict" in checkpoint:
+            state_dict = checkpoint["state_dict"]
+        else:
+            state_dict = checkpoint  # 纯粹是 state_dict
+        # 加载权重
+        import pdb; pdb.set_trace() 
+        missing_keys, unexpected_keys = self.load_state_dict(state_dict, strict=False)
+
+        print(f"[VGGTControlNetDFoTVideoPose][init_base_model] Loaded base model from: {ckpt_path}")
+        if missing_keys:
+            print(f"[VGGTControlNetDFoTVideoPose][init_base_model] Missing keys: {missing_keys}")
+        if unexpected_keys:
+            print(f"[VGGTControlNetDFoTVideoPose][init_base_model] Unexpected keys: {unexpected_keys}")
+        
     def vggt_processor(self, images: Tensor): 
         # now only use a resize
         # TODO check the correctness 
         # images: b t c h w 
-        
         b = images.shape[0] 
         images = rearrange(images, 'b f c h w -> (b f) c h w')
         images_resized = F.interpolate(images, size=(518, 518), mode="bilinear", align_corners=False)
         images_resized = rearrange(images_resized, '(b f) c h w -> b f c h w', b=b)
         return images_resized
-    
+
+    # called by 'on_save_checkpoint' 
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        # 1. (Optionally) uncompile the model's state_dict before saving
+        self._uncompile_checkpoint(checkpoint)
+        # 2. Only save the meaningful keys defined by self._should_include_in_checkpoint
+        # by default, only the model's state_dict is saved and metrics & registered buffes (e.g. diffusion schedule) are not discarded
+        state_dict = checkpoint["state_dict"]
+        # rewrite annotation: 
+        # since we could not simply re-implement _should_include_in_checkpoint because this functions is shared with _on_load_chekcpoint 
+        # we need to re-rewrite on_save_checkpiont
+        # during controlnet trianing, we want to load base model state dict and controlnet(optional.)
+        # during controlnet inference: we want to load base model and controlnet 
+        # during controlnet training, we want to save only trainable(controlnet and connector)
+        should_include = [n for n,p in self.named_parameters() if p.requires_grad]
+        for key in list(state_dict.keys()):
+            if key not in should_include:
+                del state_dict[key]
+        
     def training_step(self, batch, batch_idx, namespace="training"):
         """Training step"""
         xs, conditions, masks, gt_videos  = batch
@@ -182,7 +218,7 @@ class VGGTControlNetDFoTVideoPose(DFoTVideoPose):
             "xs_pred": xs_pred,
             "xs": xs,
         }
-        print(f"loss {loss.item()} xs shape {xs.shape} xs_pred shape {xs_pred.shape}")
+        # print(f"loss {loss.item()} xs shape {xs.shape} xs_pred shape {xs_pred.shape}")
         return output_dict
 
     def _sample_sequence(

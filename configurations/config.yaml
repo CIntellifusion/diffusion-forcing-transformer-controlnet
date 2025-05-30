@@ -14,4 +14,4 @@ wandb:
   mode: offline  # set wandb logging to online, offline or dryrun
 
 resume: null # wandb run id to resume logging and loading checkpoint from
-load: null # wanmdb run id containing checkpoint or a path to a checkpoint file 
+load: null # wandb run id containing checkpoint or a path to a checkpoint file 

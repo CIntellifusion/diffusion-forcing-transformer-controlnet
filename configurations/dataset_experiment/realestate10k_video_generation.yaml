@@ -6,8 +6,8 @@
 # useful for dataset-specific overrides
 
 dataset:
-  subdataset_size: 2400000
-  num_eval_videos: 500
+  subdataset_size: 10
+  num_eval_videos: 5
   maximize_training_data: true
   augmentation:
     frame_skip_increase: 1

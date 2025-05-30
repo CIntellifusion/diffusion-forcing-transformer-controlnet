@@ -47,6 +47,7 @@ class RealEstate10KBaseVideoDataset(BaseVideoDataset):
     }
 
     def _should_download(self) -> bool:
+        return False 
         if self.resolution not in self._SUPPORTED_RESOLUTIONS:
             raise ValueError(
                 f"Resolution {self.resolution} is not supported. Supported resolutions: {list(self._SUPPORTED_RESOLUTIONS.keys())}. Please modify `_SUPPORTED_RESOLUTIONS` in the RealEstate10kBaseVideoDataset class to support this resolution."

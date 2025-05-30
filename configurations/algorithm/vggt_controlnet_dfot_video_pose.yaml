@@ -14,3 +14,5 @@ camera_pose_conditioning:
   normalize_by: first # first, mean
   bound: null # float to scale the camera positions to [-bound, bound]^3
   type: ray_encoding # global (flattened extrinsics), ray (per-pixel origin and direction), ray_encoding (ray mapped to high-dimensional space), plucker (ray in Plücker coordinates)
+
+base_model_ckpt: checkpoints/DFoT_RE10K_16frame_5kft.ckpt
